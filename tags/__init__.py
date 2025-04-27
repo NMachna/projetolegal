@@ -1,0 +1,1 @@
+from .funcoes_tags import cadastrar_tag, excluir_tag, remover_tag_de_empresa

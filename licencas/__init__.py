@@ -1,0 +1,1 @@
+from .funcao_cadastro_exclusao_licencas import adicionar_licenca, excluir_licenca

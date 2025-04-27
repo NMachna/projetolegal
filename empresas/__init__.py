@@ -1,0 +1,5 @@
+from .funcao_cadastro import cadastrar_empresa
+from .funcao_consulta_empresa import consultar_empresa
+from .funcao_editar_empresa import editar_empresa, editar_datas_licencas_empresa
+from .funcao_cadastro_emp_lic import associar_empresa_a_tag_ou_licenca
+from .funcao_exclusao import excluir_empresa, desassociar_licenca_empresa
