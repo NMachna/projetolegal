@@ -1,134 +1,146 @@
+import sqlite3
 from datetime import datetime
 from banco.banco import criar_conexao
 
 
 def editar_empresa():
-    cnpj = input("Digite o CNPJ da empresa que deseja editar (apenas números): ").strip()
+    try:
+        with criar_conexao() as conexao:
 
-    conn = criar_conexao()
-    cursor = conn.cursor()
+            cursor = conexao.cursor()
 
-    cursor.execute("SELECT codigo, nome_empresa, municipio, email FROM tabela_empresas WHERE cnpj = ?", (cnpj,))
-    empresa = cursor.fetchone()
+            cnpj = input("Digite o CNPJ da empresa que deseja editar (apenas números): ").strip()
 
-    if not empresa:
-        print("Empresa não encontrada.")
-        conn.close()
-        return
+            cursor.execute("SELECT codigo, nome_empresa, municipio, email FROM tabela_empresas WHERE cnpj = ?", (cnpj,))
+            empresa = cursor.fetchone()
 
-    codigo, nome_empresa, municipio, email = empresa
+            if not empresa:
+                print("Empresa não encontrada.")
+                conexao.close()
+                return
 
-    print(f"\nEmpresa a ser alterada: {nome_empresa}")
-    print("[1] Editar várias informações.")
-    print("[2] Editar apenas uma informação.")
-    opcao = input("Qual tipo de alteração deseja fazer? (1/2): ").strip()
+            codigo, nome_empresa, municipio, email = empresa
 
-    if opcao == '1':
-        novo_nome = input(f"Novo nome da empresa (atualmente {nome_empresa}): ").strip()
-        novo_codigo = input(f"Novo código (atualmente {codigo}): ").strip()
-        novo_municipio = input(f"Novo município (atualmente {municipio}): ").strip()
-        novo_email = input(f"Novo e-mail (atualmente {email}): ").strip()
+            print(f"\nEmpresa a ser alterada: {nome_empresa}")
+            print("[1] Editar várias informações.")
+            print("[2] Editar apenas uma informação.")
+            opcao = input("Qual tipo de alteração deseja fazer? (1/2): ").strip()
 
-        cursor.execute("""
-            UPDATE tabela_empresas 
-            SET nome_empresa = ?, codigo = ?, municipio = ?, email = ? 
-            WHERE cnpj = ?
-        """, (novo_nome, novo_codigo, novo_municipio, novo_email, cnpj))
-        print("Informações atualizadas com sucesso!")
+            if opcao == '1':
+                novo_nome = input(f"Novo nome da empresa (atualmente {nome_empresa}): ").strip()
+                novo_codigo = input(f"Novo código (atualmente {codigo}): ").strip()
+                novo_municipio = input(f"Novo município (atualmente {municipio}): ").strip()
+                novo_email = input(f"Novo e-mail (atualmente {email}): ").strip()
 
-    elif opcao == '2':
-        print("\n[1] Nome da empresa")
-        print("[2] Código da empresa")
-        print("[3] Município")
-        print("[4] E-mail")
-        escolha = input("Escolha o que deseja alterar (1/2/3/4): ").strip()
+                cursor.execute("""
+                    UPDATE tabela_empresas 
+                    SET nome_empresa = ?, codigo = ?, municipio = ?, email = ? 
+                    WHERE cnpj = ?
+                """, (novo_nome, novo_codigo, novo_municipio, novo_email, cnpj))
+                print("Informações atualizadas com sucesso!")
 
-        campos = {
-            '1': ("nome_empresa", "Nome da empresa", nome_empresa),
-            '2': ("codigo", "Código", codigo),
-            '3': ("municipio", "Município", municipio),
-            '4': ("email", "E-mail", email)
-        }
+            elif opcao == '2':
+                print("\n[1] Nome da empresa")
+                print("[2] Código da empresa")
+                print("[3] Município")
+                print("[4] E-mail")
+                escolha = input("Escolha o que deseja alterar (1/2/3/4): ").strip()
 
-        if escolha in campos:
-            campo_sql, descricao, valor_atual = campos[escolha]
-            novo_valor = input(f"Novo {descricao} (atualmente {valor_atual}): ").strip()
+                campos = {
+                    '1': ("nome_empresa", "Nome da empresa", nome_empresa),
+                    '2': ("codigo", "Código", codigo),
+                    '3': ("municipio", "Município", municipio),
+                    '4': ("email", "E-mail", email)
+                }
 
-            cursor.execute(f"UPDATE tabela_empresas SET {campo_sql} = ? WHERE cnpj = ?", (novo_valor, cnpj))
-            print(f"{descricao} atualizado com sucesso!")
-        else:
-            print("Opção inválida.")
+                if escolha in campos:
+                    campo_sql, descricao, valor_atual = campos[escolha]
+                    novo_valor = input(f"Novo {descricao} (atualmente {valor_atual}): ").strip()
 
-    else:
-        print("Opção inválida.")
+                    cursor.execute(f"UPDATE tabela_empresas SET {campo_sql} = ? WHERE cnpj = ?", (novo_valor, cnpj))
+                    print(f"{descricao} atualizado com sucesso!")
+                else:
+                    print("Opção inválida.")
 
-    conn.commit()
-    conn.close()
+            else:
+                print("Opção inválida.")
+
+            conexao.commit()
+
+    except sqlite3.OperationalError as e:
+        print(f"Algo deu errado, erro: {e}")
+        conexao.rollback()
+
 
 
 def editar_datas_licencas_empresa():
-    cnpj = input("Digite o CNPJ da empresa para editar as datas das licenças: ").strip()
+    try:
+        with criar_conexao() as conexao:
 
-    conn = criar_conexao()
-    cursor = conn.cursor()
+            cursor = conexao.cursor()
 
-    cursor.execute("SELECT nome_empresa FROM tabela_empresas WHERE cnpj = ?", (cnpj,))
-    empresa = cursor.fetchone()
+            cnpj = input("Digite o CNPJ da empresa para editar as datas das licenças: ").strip()
 
-    if not empresa:
-        print("Empresa não encontrada.")
-        conn.close()
-        return
+            cursor.execute("SELECT nome_empresa FROM tabela_empresas WHERE cnpj = ?", (cnpj,))
+            empresa = cursor.fetchone()
 
-    nome_empresa = empresa[0]
-    print(f"\nEmpresa encontrada: {nome_empresa}")
+            if not empresa:
+                print("Empresa não encontrada.")
+                conexao.close()
+                return
 
-    cursor.execute("""
-        SELECT l.nome_licenca, rel.data_base
-        FROM relacao_empresa_licenca rel
-        JOIN tabela_licencas l ON rel.nome_licenca = l.nome_licenca
-        WHERE rel.cnpj = ?
-    """, (cnpj,))
-    licencas = cursor.fetchall()
+            nome_empresa = empresa[0]
+            print(f"\nEmpresa encontrada: {nome_empresa}")
 
-    if not licencas:
-        print("Nenhuma licença associada a essa empresa.")
-        conn.close()
-        return
+            cursor.execute("""
+                SELECT l.nome_licenca, rel.data_base
+                FROM relacao_empresa_licenca rel
+                JOIN tabela_licencas l ON rel.nome_licenca = l.nome_licenca
+                WHERE rel.cnpj = ?
+            """, (cnpj,))
+            licencas = cursor.fetchall()
 
-    print("\nLicenças associadas:")
-    for i, (nome_licenca, data_base) in enumerate(licencas, 1):
-        print(f"[{i}] {nome_licenca} | Data Base: {data_base}")
+            if not licencas:
+                print("Nenhuma licença associada a essa empresa.")
+                conexao.close()
+                return
 
-    escolha = input("\nDigite o número da licença que deseja editar: ").strip()
-    if not escolha.isdigit() or not (1 <= int(escolha) <= len(licencas)):
-        print("Opção inválida.")
-        conn.close()
-        return
+            print("\nLicenças associadas:")
+            for i, (nome_licenca, data_base) in enumerate(licencas, 1):
+                print(f"[{i}] {nome_licenca} | Data Base: {data_base}")
 
-    nome_licenca, data_base_atual = licencas[int(escolha) - 1]
+            escolha = input("\nDigite o número da licença que deseja editar: ").strip()
+            if not escolha.isdigit() or not (1 <= int(escolha) <= len(licencas)):
+                print("Opção inválida.")
+                conexao.close()
+                return
 
-    nova_data = input(
-        f"Nova data base para '{nome_licenca}' (formato YYYY-MM-DD) ou pressione Enter para manter '{data_base_atual}': "
-    ).strip()
+            nome_licenca, data_base_atual = licencas[int(escolha) - 1]
 
-    if nova_data:
-        try:
-            datetime.strptime(nova_data, "%Y-%m-%d")
-        except ValueError:
-            print("Formato inválido. A data não foi alterada.")
-            conn.close()
-            return
-    else:
-        nova_data = data_base_atual
+            nova_data = input(
+                f"Nova data base para '{nome_licenca}' (formato YYYY-MM-DD) ou pressione Enter para manter '{data_base_atual}': "
+            ).strip()
 
-    cursor.execute("""
-        UPDATE relacao_empresa_licenca 
-        SET data_base = ? 
-        WHERE cnpj = ? AND nome_licenca = ?
-    """, (nova_data, cnpj, nome_licenca))
+            if nova_data:
+                try:
+                    datetime.strptime(nova_data, "%Y-%m-%d")
+                except ValueError:
+                    print("Formato inválido. A data não foi alterada.")
+                    conexao.close()
+                    return
+            else:
+                nova_data = data_base_atual
 
-    conn.commit()
-    conn.close()
+            cursor.execute("""
+                UPDATE relacao_empresa_licenca 
+                SET data_base = ? 
+                WHERE cnpj = ? AND nome_licenca = ?
+            """, (nova_data, cnpj, nome_licenca))
 
-    print(f"\nA data base da licença '{nome_licenca}' foi atualizada para {nova_data}")
+            conexao.commit()
+
+            print(f"\nA data base da licença '{nome_licenca}' foi atualizada para {nova_data}")
+
+    except sqlite3.OperationalError as e:
+        print(f"Algo deu errado, erro: {e}")
+        conexao.rollback()
