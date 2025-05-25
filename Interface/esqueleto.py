@@ -1,267 +1,220 @@
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QDockWidget, QListWidget, 
-    QTableWidget, QVBoxLayout, QHBoxLayout, QWidget, 
-    QLineEdit, QPushButton, QStackedWidget, QHeaderView, QTextEdit, QLabel, QComboBox
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
+    QPushButton, QStackedWidget, QTableWidget, 
+    QHeaderView, QFormLayout, QComboBox
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
+import sys
 
-# PEP8
-# Arrumar
-# <UML> para banco de Dados
+# ---------- Estilo global ----------
+ESTILO_BOTAO = """
+    QPushButton {
+        background-color: #3498db;
+        color: white;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+    QPushButton:hover {
+        background-color: #2980b9;
+    }
+"""
 
+ESTILO_INPUT = "QLineEdit { padding: 6px; font-size: 14px; }"
+ESTILO_LABEL = "QLabel { font-size: 14px; }"
 
+# ---------- Janela Principal da Interface ----------
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Esqueleto da Tabela de Controle")
-        self.setGeometry(100, 100, 800, 600)
-        self.showMaximized() # Para aparecer de forma Maximizada, mas com bordas de minimizar, fechar etc
-        
-        # Criar o Gerenciados das telas
+        self.setWindowTitle("Sistema de Controle de Empresas")
+        self.showMaximized()
+
         self.stack = QStackedWidget()
 
-        # Criar as Telas
         self.tela_principal = TelaPrincipal()
-        self.tela_cadastro = TelaCadastro()
+        self.tela_cadastro = TelaCadastroEmpresa()
         self.tela_licencas = TelaLicencas()
+        self.tela_tags = TelaTags()
 
-        # Adicionando telas ao Stack
-        self.stack.addWidget(self.tela_principal) # Indice 0
-        self.stack.addWidget(self.tela_cadastro) # Indice 1
-        self.stack.addWidget(self.tela_licencas)  # Indice 2
 
-        # Definindo a tela principal como Inicial
+        """Indices das Telas/Janelas"""
+        self.stack.addWidget(self.tela_principal)   # índice 0
+        self.stack.addWidget(self.tela_cadastro)    # índice 1
+        self.stack.addWidget(self.tela_licencas)    # índice 2
+        self.stack.addWidget(self.tela_tags)        # índice 3
+
         self.setCentralWidget(self.stack)
 
-        # Criando um menu lateral
+        """Definindo o Menu"""
         self.menu_lateral = QDockWidget("Menu", self)
         self.lista_menu = QListWidget()
-        self.lista_menu.addItems(["Menu Principal", "Cadastro de Empresas", "Licenças", "TAGS", "Relatórios", "Alertas"])
-        self.menu_lateral.setFixedWidth(150) # Largura do menu
-
+        self.lista_menu.addItems([
+            "Menu Principal", "Cadastro de Empresas", 
+            "Licenças", "TAGS", "Relatórios", "Alertas"
+        ])
+        self.lista_menu.setStyleSheet("padding: 10px; font-size: 14px;")
+        self.menu_lateral.setFixedWidth(180)
         self.menu_lateral.setWidget(self.lista_menu)
-
-        # Adicionando o menu lateral na esquerda
         self.addDockWidget(Qt.LeftDockWidgetArea, self.menu_lateral)
 
-        # Conectar cliques do menu à troca de telas
         self.lista_menu.itemClicked.connect(self.mudar_tela)
 
 
-        
-    # Controle para mudar as Telas
+    """Função para mudanças de Telas"""
     def mudar_tela(self, item):
-        if item.text() == "Menu Principal":
+        texto = item.text()
+        if texto == "Menu Principal":
             self.stack.setCurrentIndex(0)
-        elif item.text() == "Cadastro de Empresas":
+        elif texto == "Cadastro de Empresas":
             self.stack.setCurrentIndex(1)
-        elif item.text() == "Licenças":
+        elif texto == "Licenças":
             self.stack.setCurrentIndex(2)
+        elif texto == "TAGS":
+            self.stack.setCurrentIndex(3)
 
-# -------------------------------------------- Telas Individuais --------------------------------------------
-
+# ---------- Menu Principal ----------
 class TelaPrincipal(QWidget):
     def __init__(self):
         super().__init__()
-
-        # Criando um layout vertical principal
         layout = QVBoxLayout()
+        layout.setSpacing(15)
 
-        # Criando o layout horizontal para os elementos acima da tabela
+        titulo = QLabel("Consulta de Empresas")
+        titulo.setFont(QFont("Arial", 16, QFont.Bold))
+        titulo.setAlignment(Qt.AlignLeft)
+        layout.addWidget(titulo)
+
         barra_layout = QHBoxLayout()
+        barra_layout.setSpacing(10)
 
-        # Criando o texto "Consultar Empresa"
-        self.texto_consultar = QTextEdit("Consultar Empresa")
-        self.texto_consultar.setReadOnly(True)  # Impede a edição
-        self.texto_consultar.setFixedHeight(30)  # Ajustando a altura
-        barra_layout.addWidget(self.texto_consultar)
-
-        # Criando a barra de pesquisa (input)
         self.barra_pesquisa = QLineEdit()
         self.barra_pesquisa.setPlaceholderText("Digite o CNPJ da empresa")
+        self.barra_pesquisa.setFixedHeight(30)
+        self.barra_pesquisa.setStyleSheet(ESTILO_INPUT)
         barra_layout.addWidget(self.barra_pesquisa)
 
-        # Criando o botões
         self.botao_pesquisar = QPushButton("Pesquisar")
-        barra_layout.addWidget(self.botao_pesquisar)
+        self.botao_adicionar = QPushButton("Adicionar")
+        self.botao_excluir = QPushButton("Excluir")
 
-        self.botao_adicionar = QPushButton("Adicionar Empresa")
-        barra_layout.addWidget(self.botao_adicionar)
+        for botao in [self.botao_pesquisar, self.botao_adicionar, self.botao_excluir]:
+            botao.setFixedHeight(30)
+            botao.setStyleSheet(ESTILO_BOTAO)
+            barra_layout.addWidget(botao)
 
-        self.botao_excluir = QPushButton("Excluir Empresa")
-        barra_layout.addWidget(self.botao_excluir)
-
-        # Adicionando a barra de elementos ao layout principal
         layout.addLayout(barra_layout)
 
-        # Criando a tabela
-        self.tabela = QTableWidget(30, 6)  # 20 linhas e 6 colunas
-        self.tabela.setHorizontalHeaderLabels(["Código", "CNPJ", "Nome Empresa", "Município", "TAG", "E-mail"])
+        # Setando a tabeela
+        self.tabela = QTableWidget(0, 6)
+        self.tabela.setHorizontalHeaderLabels(["Código", "CNPJ", "Nome", "Município", "TAG", "E-mail"])
         self.tabela.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tabela.setStyleSheet("font-size: 13px;")
+        layout.addWidget(self.tabela)
 
-        self.tabela.setColumnWidth(0, 75)  # Código
-        self.tabela.setColumnWidth(1, 130)  # CNPJ
-        self.tabela.setColumnWidth(2, 400)  # Nome Empresa
-        self.tabela.setColumnWidth(3, 200)  # Município
-        self.tabela.setColumnWidth(4, 100)  # TAG
-
-        layout.addWidget(self.tabela)  # Adicionando a tabela ao layout
-
-        # Definir layout direto na Tela
         self.setLayout(layout)
 
-        
-
-class TelaCadastro(QWidget):
+# ---------- Tela de Cadastro ----------
+class TelaCadastroEmpresa(QWidget):
     def __init__(self):
         super().__init__()
-        layout_principal = QVBoxLayout()
-        layout_principal.setAlignment(Qt.AlignCenter)  # Centraliza o layout na tela
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
 
-        # ------------------------ Linha 1 (Código - CNPJ - Nome Empresa) ------------------------
-        linha1 = QHBoxLayout()
+        titulo = QLabel("Cadastro de Empresa")
+        titulo.setFont(QFont("Arial", 16, QFont.Bold))
+        layout.addWidget(titulo)
 
-        coluna1 = QVBoxLayout()
-        label_codigo = QLabel("Código:")
-        self.input_codigo = QLineEdit()
-        self.input_codigo.setFixedWidth(120)
-        coluna1.addWidget(label_codigo)
-        coluna1.addWidget(self.input_codigo)
+        form_layout = QFormLayout()
+        form_layout.setLabelAlignment(Qt.AlignLeft)
 
-        coluna2 = QVBoxLayout()
-        label_cnpj = QLabel("CNPJ:")
         self.input_cnpj = QLineEdit()
-        self.input_cnpj.setFixedWidth(180)
-        coluna2.addWidget(label_cnpj)
-        coluna2.addWidget(self.input_cnpj)
-
-        coluna3 = QVBoxLayout()
-        label_nome_empresa = QLabel("Nome Empresa:")
-        self.input_nome_empresa = QLineEdit()
-        self.input_nome_empresa.setFixedWidth(280)
-        coluna3.addWidget(label_nome_empresa)
-        coluna3.addWidget(self.input_nome_empresa)
-
-        linha1.addLayout(coluna1)
-        linha1.addLayout(coluna2)
-        linha1.addLayout(coluna3)
-
-        # ------------------------ Linha 2 (Município - TAG - E-mail) ------------------------
-        linha2 = QHBoxLayout()
-
-        coluna4 = QVBoxLayout()
-        label_municipio = QLabel("Município:")
+        self.input_nome = QLineEdit()
         self.input_municipio = QLineEdit()
-        self.input_municipio.setFixedWidth(200)
-        coluna4.addWidget(label_municipio)
-        coluna4.addWidget(self.input_municipio)
-
-        coluna5 = QVBoxLayout()
-        label_tag = QLabel("TAG:")
-        self.input_tag = QLineEdit()
-        self.input_tag.setFixedWidth(120)
-        coluna5.addWidget(label_tag)
-        coluna5.addWidget(self.input_tag)
-
-        coluna6 = QVBoxLayout()
-        label_email = QLabel("E-mail:")
         self.input_email = QLineEdit()
-        self.input_email.setFixedWidth(280)
-        coluna6.addWidget(label_email)
-        coluna6.addWidget(self.input_email)
+        self.input_tag = QComboBox()
+        self.input_tag.addItems([""])  # As TAGs devem aparecer conforme o usuario adiciona novas
 
-        linha2.addLayout(coluna4)
-        linha2.addLayout(coluna5)
-        linha2.addLayout(coluna6)
+        for label, input_widget in [
+            ("CNPJ:", self.input_cnpj),
+            ("Nome:", self.input_nome),
+            ("Município:", self.input_municipio),
+            ("E-mail:", self.input_email),
+            ("TAG:", self.input_tag),
+        ]:
+            input_widget.setStyleSheet(ESTILO_INPUT)
+            label_widget = QLabel(label)
+            label_widget.setStyleSheet(ESTILO_LABEL)
+            form_layout.addRow(label_widget, input_widget)
 
-        # ------------------------ Botão Cadastrar ------------------------
-        botao_layout = QHBoxLayout()
-        botao_layout.setAlignment(Qt.AlignCenter)  # Centralizar o botão
-        self.btn_cadastrar = QPushButton("Cadastrar")
-        self.btn_cadastrar.setFixedSize(200, 40)  # Botão maior para destaque
-        botao_layout.addWidget(self.btn_cadastrar)
+        layout.addLayout(form_layout)
 
-        # ------------------------ Adicionar elementos ao Layout Principal ------------------------
-        layout_principal.addLayout(linha1)
-        layout_principal.addSpacing(10)  # Espaço entre as linhas
-        layout_principal.addLayout(linha2)
-        layout_principal.addSpacing(20)  # Espaço antes do botão
-        layout_principal.addLayout(botao_layout)
+        self.botao_salvar = QPushButton("Salvar")
+        self.botao_salvar.setStyleSheet(ESTILO_BOTAO)
+        layout.addWidget(self.botao_salvar, alignment=Qt.AlignRight)
 
-        # Definir layout final
-        self.setLayout(layout_principal) # Juntando todo o layout
+        self.setLayout(layout)
 
-# -------------------------------------------- Tela Licenças --------------------------------------------
-
+# ---------- Tela de Licenças ----------
 class TelaLicencas(QWidget):
     def __init__(self):
         super().__init__()
+        layout = QVBoxLayout()
 
-        # Layout Principal
-        layout_horizontal = QHBoxLayout()
+        titulo = QLabel("Licenças")
+        titulo.setFont(QFont("Arial", 16, QFont.Bold))
+        layout.addWidget(titulo)
 
-        # ---------------------- Menu de Botões (lado esquerdo) ----------------------
-
-        menu_botoes = QVBoxLayout()
-        
-        self.botao_adicionar = QPushButton("Adicionar Licença")
-        self.botao_adicionar.setFixedSize(150, 50)
-
-        self.botao_excluir = QPushButton("Excluir Licença")
-        self.botao_excluir.setFixedSize(150, 50)
-
-        menu_botoes.addStretch()
-        menu_botoes.addWidget(self.botao_adicionar, alignment=Qt.AlignCenter)
-        menu_botoes.addSpacing(10)
-        menu_botoes.addWidget(self.botao_excluir, alignment=Qt.AlignCenter)
-        menu_botoes.addStretch()
-
-        menu_botoes.addWidget(self.botao_adicionar)
-        menu_botoes.addWidget(self.botao_excluir)
-
-        layout_horizontal.addLayout(menu_botoes)
-
-        # ---------------------- Área da Tabela + Filtros ----------------------
-
-        area_tabela_layout = QVBoxLayout()
-
-        # Layout dos filtros
-        filtros_layout = QHBoxLayout()
-
-        self.input_pesquisa = QLineEdit()
-        self.input_pesquisa.setPlaceholderText("Digite o Nome da Licença")
-
-        self.dropdown_filtro = QComboBox()
-        self.dropdown_filtro.addItems(["Todas", "Anual", "Semestral", "Trimestral", "Mensal"]) # Tipos de Periodicidade
-        
-        filtros_layout.addWidget(QLabel("Pesquisar Licença:"))
-        filtros_layout.addWidget(self.input_pesquisa)
-        filtros_layout.addWidget(QLabel("Filtro:"))
-        filtros_layout.addWidget(self.dropdown_filtro)
-
-
-        area_tabela_layout.addLayout(filtros_layout)
-
-        # Tabela de Licenças
-        self.tabela_licencas = QTableWidget(10, 5)
-        self.tabela_licencas.setHorizontalHeaderLabels(["ID", "Nome", "Data Base", "Periodicidade", "Antecipação"])
-
-        self.tabela_licencas.setColumnWidth(0, 50)    # ID
-        self.tabela_licencas.setColumnWidth(1, 250)   # Nome
-        self.tabela_licencas.setColumnHidden(2, True) # Oculta a coluna "Data Base"
-        self.tabela_licencas.setColumnWidth(3, 120)   # Periodicidade
-        self.tabela_licencas.setColumnWidth(4, 120)   # Antecipação
-
+        self.tabela_licencas = QTableWidget(0, 3)
+        self.tabela_licencas.setHorizontalHeaderLabels([
+            "Licença", "Periodicidade do Vencimento", "Dias de Antecipação"
+        ])
         self.tabela_licencas.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tabela_licencas.setStyleSheet("font-size: 13px;")
+        layout.addWidget(self.tabela_licencas)
 
-        area_tabela_layout.addWidget(self.tabela_licencas)
+        self.botao_adicionar_licenca = QPushButton("Adicionar Licença")
+        self.botao_adicionar_licenca.setStyleSheet(ESTILO_BOTAO)
 
-        # Adiciona a parte da tabela ao layout principal
-        layout_horizontal.addLayout(area_tabela_layout)
+        self.botao_excluir_licenca = QPushButton("Excluir Licença")
+        self.botao_excluir_licenca.setStyleSheet(ESTILO_BOTAO)
+        
+        for botao in [self.botao_adicionar_licenca, self.botao_excluir_licenca]:
+            botao.setFixedHeight(30)
+            botao.setStyleSheet(ESTILO_BOTAO)
+            layout.addWidget(botao)
 
-        self.setLayout(layout_horizontal)
+        self.setLayout(layout)
 
-app = QApplication([])
-janela = MainWindow()
-janela.show()
-app.exec()
+# ---------- Tela de TAGs ----------
+class TelaTags(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+
+        titulo = QLabel("TAGS")
+        titulo.setFont(QFont("Arial", 16, QFont.Bold))
+        layout.addWidget(titulo)
+
+        self.tabela_tags = QTableWidget(0, 2)
+        self.tabela_tags.setHorizontalHeaderLabels(["Nome da TAG", "Descrição"]) # Descrição seria opcional
+        self.tabela_tags.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tabela_tags.setStyleSheet("font-size: 13px;")
+        layout.addWidget(self.tabela_tags)
+
+        self.botao_adicionar_tag = QPushButton("Adicionar TAG")
+        self.botao_adicionar_tag.setStyleSheet(ESTILO_BOTAO)
+        layout.addWidget(self.botao_adicionar_tag, alignment=Qt.AlignRight)
+
+        self.setLayout(layout)
+
+# ---------- Execução ----------
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    screen_geometry = app.primaryScreen().availableGeometry()
+    window.setGeometry(screen_geometry)
+    window.show()
+    sys.exit(app.exec())
