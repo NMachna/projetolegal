@@ -16,8 +16,9 @@ def criar_tabelas():
     # Tabela de empresas
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tabela_empresas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             codigo TEXT,
-            cnpj TEXT UNIQUE PRIMARY KEY,
+            cnpj TEXT UNIQUE,
             nome_empresa TEXT NOT NULL,
             municipio TEXT NOT NULL,
             tag TEXT,
@@ -28,7 +29,7 @@ def criar_tabelas():
     # Tabela de licenças
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tabela_licencas (
-            id_licenca INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome_licenca TEXT NOT NULL,
             data_base DATE,
             periodicidade TEXT,
@@ -45,7 +46,6 @@ def criar_tabelas():
             data_base DATE NOT NULL,
             periodicidade TEXT NOT NULL,
             antecipacao INTEGER NOT NULL,
-            origem_tag INTEGER DEFAULT 0,
             FOREIGN KEY (cnpj) REFERENCES tabela_empresas(cnpj),
             FOREIGN KEY (nome_licenca) REFERENCES tabela_licencas(nome_licenca),
             UNIQUE (cnpj, nome_licenca)
@@ -55,10 +55,10 @@ def criar_tabelas():
     # Tabela de TAGs e Licenças
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tabela_tags (
-            id_tag INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome_tag TEXT NOT NULL,
-            id_licenca TEXT NOT NULL,
-            FOREIGN KEY (id_licenca) REFERENCES tabela_licencas(id_licenca)
+            id_licenca INTEGER NOT NULL,
+            FOREIGN KEY (id_licenca) REFERENCES tabela_licencas(id)
         )
     """)
 

@@ -20,6 +20,17 @@ def calcular_data_vencimento_avisos(periodicidade, data_base, antecipacao):
 
     return data_vencimento.strftime("%Y-%m-%d"), data_envio.strftime("%Y-%m-%d")
 
+def obter_empresas():
+    try:
+        with criar_conexao() as conexao:
+            cursor = conexao.cursor()
+            cursor.execute("SELECT id, codigo, cnpj, nome_empresa, municipio, tag, email FROM tabela_empresas")
+            dados = cursor.fetchall()
+            return dados
+        
+    except sqlite3.OperationalError as e:
+        print(f"Algo deu errado, erro: {e}")
+        conexao.rollback()
 
 def consultar_empresa():
     try:

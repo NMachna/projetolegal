@@ -5,9 +5,12 @@ __pycache__/
 *$py.class
 
 banco/banco.py
+Interface/esqueleto.py
 
 # C extensions
 *.so
+*.db
+*.pyc
 
 # Distribution / packaging
 .Python
