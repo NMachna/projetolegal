@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QDockWidget, QListWidget, 
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QStackedWidget, QTableWidget, 
-    QHeaderView, QFormLayout, QComboBox, QTableWidgetItem
+    QHeaderView, QFormLayout, QComboBox, QTableWidgetItem, QDialog, QAbstractScrollArea
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
@@ -19,8 +19,8 @@ class TelaTags(QWidget):
         titulo.setFont(QFont("Arial", 16, QFont.Bold))
         layout.addWidget(titulo)
 
-        self.tabela_tags = QTableWidget(0, 2)
-        self.tabela_tags.setHorizontalHeaderLabels(["ID", "Nome da TAG", "ID Licença"]) # Descrição seria opcional
+        self.tabela_tags = QTableWidget(0, 1)  # Apenas 1 coluna agora
+        self.tabela_tags.setHorizontalHeaderLabels(["Nome TAG"])
         self.tabela_tags.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabela_tags.setStyleSheet("font-size: 13px;")
         layout.addWidget(self.tabela_tags)
@@ -31,12 +31,56 @@ class TelaTags(QWidget):
 
         self.carregar_tags()
         self.setLayout(layout)
+        self.tabela_tags.cellDoubleClicked.connect(self.abrir_detalhes_tags)
     
     def carregar_tags(self):
-        dados = obter_tags()
-        print("TAGS CARREGADAS:", dados)
-        self.tabela_tags.setRowCount(len(dados))
+        self.tags = obter_tags()
+        self.tabela_tags.setRowCount(len(self.tags))
 
-        for i, linha in enumerate(dados):
-            for j, valor in enumerate(linha):
-                self.tabela_tags.setItem(i, j, QTableWidgetItem(str(valor)))
+        for i, (nome_tag, _) in enumerate(self.tags):
+            self.tabela_tags.setItem(i, 0, QTableWidgetItem(nome_tag))
+
+    def abrir_detalhes_tags(self, row):
+        nome_tag, licencas = self.tags[row]
+
+        dialogo = QDialog(self)
+        dialogo.setWindowTitle(f"Licenças vinculadas à TAG '{nome_tag}'")
+
+        layout = QVBoxLayout()
+
+        tabela = QTableWidget()
+        tabela.setColumnCount(3)
+        tabela.setHorizontalHeaderLabels(["Nome da Licença", "Periodicidade", "Antecipação"])
+        tabela.setRowCount(len(licencas))
+
+        for i, (_, nome_licenca, periodicidade, antecipacao) in enumerate(licencas):
+            tabela.setItem(i, 0, QTableWidgetItem(nome_licenca))
+            tabela.setItem(i, 1, QTableWidgetItem(periodicidade))
+            tabela.setItem(i, 2, QTableWidgetItem(str(antecipacao)))
+
+        tabela.resizeColumnsToContents()
+        tabela.resizeRowsToContents()
+        tabela.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+        layout.addWidget(tabela)
+
+        botao_fechar = QPushButton("Fechar")
+        botao_fechar.setStyleSheet(ESTILO_BOTAO)
+        botao_fechar.clicked.connect(dialogo.close)
+        layout.addWidget(botao_fechar, alignment=Qt.AlignRight)
+
+        dialogo.setLayout(layout)
+
+        # Ajusta tamanho com base na tabela
+        largura = tabela.verticalHeader().width()
+        for i in range(tabela.columnCount()):
+            largura += tabela.columnWidth(i)
+
+        altura = tabela.horizontalHeader().height()
+        for i in range(tabela.rowCount()):
+            altura += tabela.rowHeight(i)
+
+        largura += 50
+        altura += 100
+
+        dialogo.resize(largura, altura)
+        dialogo.exec()

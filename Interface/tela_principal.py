@@ -60,7 +60,7 @@ class TelaPrincipal(QWidget):
                 item = QTableWidgetItem(str(valor))
                 self.tabela.setItem(i, j, item)
 
-        self.tabela.resizeColumnsToContents()
+        self.tabela.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
     def carregar_dados(self):
         self.barra_pesquisa.clear()

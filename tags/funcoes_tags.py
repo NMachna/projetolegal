@@ -4,15 +4,22 @@ from banco.banco import criar_conexao
 """Cadastra uma nova TAG e associa licenças a ela."""
 
 def obter_tags():
-    try:
-        with criar_conexao() as conexao:
-            cursor = conexao.cursor()
-            cursor.execute("SELECT id, nome_tag, id_licenca FROM tabela_tags")
-            return cursor.fetchall()
-        
-    except sqlite3.OperationalError as e:
-        print(f"Erro ao obter tags: {e}")
-        return []
+    with criar_conexao() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT t.nome_tag, l.id, l.nome_licenca, l.periodicidade, l.antecipacao
+            FROM tabela_tags t
+            JOIN tabela_licencas l ON t.id_licenca = l.id
+        """)
+        registros = cursor.fetchall()
+
+        tags_dict = {}
+        for nome_tag, id_licenca, nome_licenca, periodicidade, antecipacao in registros:
+            if nome_tag not in tags_dict:
+                tags_dict[nome_tag] = []
+            tags_dict[nome_tag].append((id_licenca, nome_licenca, periodicidade, antecipacao))
+
+        return list(tags_dict.items())
 
 def cadastrar_tag(nova_tag):
     try:

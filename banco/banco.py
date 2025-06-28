@@ -38,6 +38,8 @@ def criar_tabelas():
     """)
 
     # Relação Empresa <-> Licença
+
+    # Alterar ID empresa e Excluir nome licença pelo ID dela
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS relacao_empresa_licenca (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
