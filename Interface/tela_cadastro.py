@@ -1,13 +1,13 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QFormLayout, QLineEdit,
-    QComboBox, QPushButton, QMessageBox, QDialog, QDialogButtonBox,
-    QDateEdit, QHBoxLayout
+    QWidget, QVBoxLayout, QLabel, 
+    QFormLayout, QLineEdit, QComboBox, 
+    QPushButton, QMessageBox, QDialog, 
+    QDialogButtonBox, QDateEdit, QHBoxLayout
 )
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QFont
 from banco.banco import criar_conexao
-from Interface.estilos import ESTILO_BOTAO, ESTILO_INPUT, ESTILO_LABEL
-import sqlite3
+from Interface.estilos import ESTILO_BOTAO, ESTILO_COMBOBOX, ESTILO_DATEEDIT, ESTILO_INPUT, ESTILO_LABEL
 from datetime import datetime
 
 class TelaCadastroEmpresa(QWidget):
@@ -15,6 +15,9 @@ class TelaCadastroEmpresa(QWidget):
         super().__init__()
         layout = QVBoxLayout()
         layout.setSpacing(20)
+        
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
 
         titulo = QLabel("Cadastro de Empresa")
         titulo.setFont(QFont("Arial", 16, QFont.Bold))
@@ -29,6 +32,7 @@ class TelaCadastroEmpresa(QWidget):
         self.input_municipio = QLineEdit()
         self.input_email = QLineEdit()
         self.input_tag = QComboBox()
+        self.input_tag.setStyleSheet(ESTILO_COMBOBOX)
 
         for label, input_widget in [
             ("Código:", self.input_codigo),
@@ -130,10 +134,14 @@ class TelaCadastroEmpresa(QWidget):
         layout = QVBoxLayout()
         campos_data = []
 
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
+        
         for _, nome_licenca, _, _ in licencas:
             linha = QHBoxLayout()
             label = QLabel(nome_licenca)
             data_edit = QDateEdit()
+            data_edit.setStyleSheet(ESTILO_DATEEDIT)
             data_edit.setCalendarPopup(True)
             data_edit.setDate(QDate.currentDate())
             linha.addWidget(label)
@@ -147,6 +155,7 @@ class TelaCadastroEmpresa(QWidget):
         layout.addWidget(botoes)
 
         dialogo.setLayout(layout)
+        dialogo.setFont(QFont("Segoe UI", 12))
 
         if dialogo.exec():
             return [campo.date() for campo in campos_data]  # Retorna as datas, não os widgets

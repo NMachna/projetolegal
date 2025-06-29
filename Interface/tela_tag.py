@@ -1,19 +1,20 @@
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QDockWidget, QListWidget, 
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
-    QPushButton, QStackedWidget, QTableWidget, 
-    QHeaderView, QFormLayout, QComboBox, QTableWidgetItem, QDialog, QAbstractScrollArea
+    QWidget, QVBoxLayout, QLabel,QPushButton, 
+    QTableWidget, QHeaderView, QTableWidgetItem, 
+    QDialog, QAbstractScrollArea
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-
 from tags.funcoes_tags import obter_tags
-from Interface.estilos import ESTILO_BOTAO, ESTILO_INPUT, ESTILO_LABEL
+from Interface.estilos import ESTILO_BOTAO, ESTILO_TABELA
 
 class TelaTags(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout()
+
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
 
         titulo = QLabel("TAGS")
         titulo.setFont(QFont("Arial", 16, QFont.Bold))
@@ -21,6 +22,7 @@ class TelaTags(QWidget):
 
         self.tabela_tags = QTableWidget(0, 1)  # Apenas 1 coluna agora
         self.tabela_tags.setHorizontalHeaderLabels(["Nome TAG"])
+        self.tabela_tags.setStyleSheet(ESTILO_TABELA)
         self.tabela_tags.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabela_tags.setStyleSheet("font-size: 13px;")
         layout.addWidget(self.tabela_tags)
@@ -47,6 +49,8 @@ class TelaTags(QWidget):
         dialogo.setWindowTitle(f"Licenças vinculadas à TAG '{nome_tag}'")
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
 
         tabela = QTableWidget()
         tabela.setColumnCount(3)
@@ -69,6 +73,7 @@ class TelaTags(QWidget):
         layout.addWidget(botao_fechar, alignment=Qt.AlignRight)
 
         dialogo.setLayout(layout)
+        dialogo.setFont(QFont("Segoe UI", 12))
 
         # Ajusta tamanho com base na tabela
         largura = tabela.verticalHeader().width()

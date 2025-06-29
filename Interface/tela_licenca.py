@@ -1,19 +1,23 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
-    QPushButton, QTableWidget, 
+    QWidget, QVBoxLayout, QLabel,
+    QLineEdit, QPushButton, QTableWidget, 
     QHeaderView, QComboBox,QTableWidgetItem,
-    QDialog, QVBoxLayout, QFormLayout, QLineEdit, QComboBox, 
-    QSpinBox, QDialogButtonBox, QMessageBox
+    QDialog, QVBoxLayout, QFormLayout, QLineEdit,
+    QComboBox, QSpinBox, QDialogButtonBox, 
+    QMessageBox
 )
 from PySide6.QtGui import QFont
 from banco.banco import criar_conexao
-from Interface.estilos import ESTILO_BOTAO, ESTILO_INPUT, ESTILO_LABEL
+from Interface.estilos import ESTILO_BOTAO, ESTILO_TABELA, ESTILO_COMBOBOX, ESTILO_INPUT, ESTILO_LABEL
 
 
 class TelaLicencas(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout()
+
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
 
         titulo = QLabel("Licenças")
         titulo.setFont(QFont("Arial", 16, QFont.Bold))
@@ -23,6 +27,7 @@ class TelaLicencas(QWidget):
         self.tabela_licencas.setHorizontalHeaderLabels([
             "Licença", "Periodicidade do Vencimento", "Dias de Antecipação"
         ])
+        self.tabela_licencas.setStyleSheet(ESTILO_TABELA)
         self.tabela_licencas.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabela_licencas.setStyleSheet("font-size: 13px;")
         layout.addWidget(self.tabela_licencas)
@@ -69,10 +74,13 @@ class TelaLicencas(QWidget):
         dialogo.setWindowTitle("Adicionar Nova Licença")
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
         form = QFormLayout()
 
         input_nome = QLineEdit()
         input_periodicidade = QComboBox()
+        input_periodicidade.setStyleSheet(ESTILO_COMBOBOX)
         input_periodicidade.addItems(["anual", "semestral", "mensal"])
 
         input_antecipacao = QSpinBox()
@@ -92,6 +100,8 @@ class TelaLicencas(QWidget):
         layout.addWidget(botoes)
 
         dialogo.setLayout(layout)
+        dialogo.setLayout(layout)
+        dialogo.setFont(QFont("Segoe UI", 12))
 
         if dialogo.exec():
             nome = input_nome.text().strip()

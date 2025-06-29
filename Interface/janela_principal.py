@@ -11,11 +11,12 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Sistema de Controle de Empresas")
         self.showMaximized()
+        self.setStyleSheet("background-color: #f0f2f5;")
 
         self.stack = QStackedWidget()
 
         # Telas
-        self.tela_principal = TelaPrincipal()
+        self.tela_principal = TelaPrincipal(self)
         self.tela_cadastro = TelaCadastroEmpresa()
         self.tela_licencas = TelaLicencas()
         self.tela_tags = TelaTags()
