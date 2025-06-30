@@ -8,7 +8,6 @@ from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QFont
 from banco.banco import criar_conexao
 from Interface.estilos import ESTILO_BOTAO, ESTILO_COMBOBOX, ESTILO_DATEEDIT, ESTILO_INPUT, ESTILO_LABEL
-from datetime import datetime
 
 class TelaCadastroEmpresa(QWidget):
     def __init__(self):

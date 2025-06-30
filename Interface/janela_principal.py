@@ -58,5 +58,9 @@ class MainWindow(QMainWindow):
 
         if item.text() == "Menu Principal":
             self.tela_principal.carregar_dados()
+
+        elif item.text() == "Cadastro de Empresas":
+            self.tela_cadastro.carregar_tags()
+            
         elif item.text() == "TAGS":
             self.tela_tags.carregar_tags()

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QFont
 from banco.banco import criar_conexao
-from Interface.estilos import ESTILO_BOTAO, ESTILO_TABELA, ESTILO_COMBOBOX, ESTILO_INPUT, ESTILO_LABEL
+from Interface.estilos import ESTILO_BOTAO, ESTILO_TABELA, ESTILO_COMBOBOX
 
 
 class TelaLicencas(QWidget):
