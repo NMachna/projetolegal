@@ -1,23 +1,26 @@
 import sqlite3
-from banco.banco import criar_conexao
+from banco.banco import Session, TabelaTags
 
 """Cadastra uma nova TAG e associa licenças a ela."""
 
 def obter_tags():
-    with criar_conexao() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT t.nome_tag, l.id, l.nome_licenca, l.periodicidade, l.antecipacao
-            FROM tabela_tags t
-            JOIN tabela_licencas l ON t.id_licenca = l.id
-        """)
-        registros = cursor.fetchall()
+    with Session() as session:
+        tags = session.query(TabelaTags).all()
 
         tags_dict = {}
-        for nome_tag, id_licenca, nome_licenca, periodicidade, antecipacao in registros:
+        for tag in tags:
+            nome_tag = tag.nome_tag
+            licenca = tag.licenca  # Acesso direto via relationship
             if nome_tag not in tags_dict:
                 tags_dict[nome_tag] = []
-            tags_dict[nome_tag].append((id_licenca, nome_licenca, periodicidade, antecipacao))
+
+            if licenca:
+                tags_dict[nome_tag].append((
+                    licenca.id,
+                    licenca.nome_licenca,
+                    licenca.periodicidade,
+                    licenca.antecipacao
+                ))
 
         return list(tags_dict.items())
 

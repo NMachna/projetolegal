@@ -1,15 +1,17 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel,QPushButton, 
+    QWidget, QVBoxLayout, QLabel, QPushButton, 
     QTableWidget, QHeaderView, QTableWidgetItem, 
     QDialog, QAbstractScrollArea, QLineEdit,
     QMessageBox, QComboBox
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+from sqlalchemy.orm import joinedload
 
-from banco.banco import criar_conexao
 from tags.funcoes_tags import obter_tags
+from banco.banco import Session, TabelaTags, TabelaLicencas
 from Interface.estilos import ESTILO_BOTAO, ESTILO_TABELA, ESTILO_INPUT, ESTILO_COMBOBOX
+
 
 class TelaTags(QWidget):
     def __init__(self):
@@ -43,11 +45,17 @@ class TelaTags(QWidget):
         self.tabela_tags.cellDoubleClicked.connect(self.abrir_detalhes_tags)
     
     def carregar_tags(self):
-        self.tags = obter_tags()
-        self.tabela_tags.setRowCount(len(self.tags))
+        try:
+            self.tags = obter_tags()
+            self.tabela_tags.setRowCount(len(self.tags))
+            self.tabela_tags.setColumnCount(1)  # Garante pelo menos 1 coluna
+            self.tabela_tags.setHorizontalHeaderLabels(["TAG"])
 
-        for i, (nome_tag, _) in enumerate(self.tags):
-            self.tabela_tags.setItem(i, 0, QTableWidgetItem(nome_tag))
+            for i, (nome_tag, _) in enumerate(self.tags):
+                item = QTableWidgetItem(nome_tag)
+                self.tabela_tags.setItem(i, 0, item)
+        except Exception as e:
+            QMessageBox.critical(self, "Erro ao carregar TAGs", str(e))
 
     def abrir_detalhes_tags(self, row):
         nome_tag, licencas = self.tags[row]
@@ -114,10 +122,8 @@ class TelaTags(QWidget):
         dropdowns = []
 
         try:
-            with criar_conexao() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT id, nome_licenca FROM tabela_licencas")
-                todas_licencas = cursor.fetchall()
+            with Session() as session:
+                todas_licencas = session.query(TabelaLicencas.id, TabelaLicencas.nome_licenca).all()
 
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao buscar licenças: {e}")
@@ -173,16 +179,18 @@ class TelaTags(QWidget):
                 return
             
             try:
-                with criar_conexao() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT COUNT(*) FROM tabela_tags WHERE nome_tag = ?", (nome_tag,))
-                    if cursor.fetchone()[0] > 0:
+                with Session() as session:
+                    # Verifica duplicidade
+                    existe = session.query(TabelaTags).filter_by(nome_tag=nome_tag).first()
+                    if existe:
                         QMessageBox.warning(dialogo, "TAG duplicada", "Essa TAG já existe.")
                         return
 
                     for id_licenca in licencas_ids:
-                        cursor.execute("INSERT INTO tabela_tags (nome_tag, id_licenca) VALUES (?, ?)", (nome_tag, id_licenca))
-                    conn.commit()
+                        nova_tag = TabelaTags(nome_tag=nome_tag, id_licenca=id_licenca)
+                        session.add(nova_tag)
+
+                    session.commit()
                     QMessageBox.information(dialogo, "Sucesso", f"TAG '{nome_tag}' cadastrada com sucesso!")
                     dialogo.accept()
                     self.carregar_tags()
@@ -194,5 +202,5 @@ class TelaTags(QWidget):
         layout.addWidget(botao_add)
         layout.addWidget(botao_salvar)
         dialogo.setLayout(layout)
-        adicionar_dropdown()  # Adiciona o primeiro campo
+        adicionar_dropdown()
         dialogo.exec()

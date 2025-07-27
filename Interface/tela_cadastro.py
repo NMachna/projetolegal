@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QFont
-from banco.banco import criar_conexao
+from banco.banco import Session, TabelaTags, TabelaEmpresa, TabelaLicencas, RelacaoEmpresaLicenca
 from Interface.estilos import ESTILO_BOTAO, ESTILO_COMBOBOX, ESTILO_DATEEDIT, ESTILO_INPUT, ESTILO_LABEL
 
 class TelaCadastroEmpresa(QWidget):
@@ -60,10 +60,8 @@ class TelaCadastroEmpresa(QWidget):
     """Seleciona todas as Tags dentro do DB e os adiciona no Combo Box do input TAG"""
     def carregar_tags(self):
         try:
-            with criar_conexao() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT DISTINCT nome_tag FROM tabela_tags")
-                tags = cursor.fetchall()
+            with Session() as session:
+                tags = session.query(TabelaTags.nome_tag).distinct().all()
                 self.input_tag.clear()
                 self.input_tag.addItems([tag[0] for tag in tags])
         
@@ -85,41 +83,55 @@ class TelaCadastroEmpresa(QWidget):
             return
 
         try:
-            with criar_conexao() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT * FROM tabela_empresas WHERE cnpj = ? OR codigo = ?", (cnpj, codigo))
+            with Session() as session:
                 
-                if cursor.fetchone():
+                duplicado = session.query(TabelaEmpresa).filter(
+                    (TabelaEmpresa.cnpj == cnpj) | (TabelaEmpresa.codigo == codigo)
+                ).first()
+
+                if duplicado:
                     QMessageBox.warning(self, "Duplicidade", "CNPJ ou Código já cadastrado.")
                     return
                 
-                cursor.execute("""
-                    INSERT INTO tabela_empresas (codigo, cnpj, nome_empresa, municipio, tag, email)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (codigo, cnpj, nome, municipio, tag, email))
+                nova_empresa = TabelaEmpresa(
+                    codigo = codigo,
+                    cnpj = cnpj,
+                    nome_empresa = nome,
+                    municipio = municipio,
+                    tag = tag,
+                    email = email
+                )
 
-                cursor.execute("""
-                    SELECT l.id, l.nome_licenca, l.periodicidade, l.antecipacao
-                    FROM tabela_tags t
-                    JOIN tabela_licencas l ON t.id_licenca = l.id
-                    WHERE t.nome_tag = ?
-                """, (tag,))
-                licencas = cursor.fetchall()
+                session.add(nova_empresa)
+                session.flush()
 
-                datas = self.abrir_dialogo_datas(licencas)
+                licencas = session.query(TabelaLicencas).join(TabelaTags).filter(
+                    TabelaTags.nome_tag == tag
+                ).all()
+
+                if not licencas:
+                    QMessageBox.warning(self, "Sem Licenças", "Nenhuma licença associada a esta TAG.")
+                    return
+
+                datas = self.abrir_dialogo_datas([
+                    (l.id, l.nome_licenca, l.periodicidade, l.antecipacao)
+                    for l in licencas
+                ])
+
                 if datas is None:
                     return # Caso o Usuario cancelar a ação
                 
                 for i, licenca in enumerate(licencas):
-                    _, nome_licenca, periodicidade, antecipacao = licenca
-
-                    data_base = datas[i].toString("yyyy-MM-dd")
-                    cursor.execute("""
-                        INSERT INTO relacao_empresa_licenca (cnpj, nome_licenca, data_base, periodicidade, antecipacao)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (cnpj, nome_licenca, data_base, periodicidade, antecipacao))
-                conn.commit()
-
+                    nova_relacao = RelacaoEmpresaLicenca(
+                        cnpj = cnpj,
+                        nome_licenca = licenca.nome_licenca,
+                        data_base = datas[i].toPython(),
+                        periodicidade = licenca.periodicidade,
+                        antecipacao = licenca.antecipacao
+                    )
+                    session.add(nova_relacao)
+                
+                session.commit()
                 QMessageBox.information(self, "Sucesso", f"Empresa '{nome}' cadastrada com sucesso!")
 
         except Exception as e:

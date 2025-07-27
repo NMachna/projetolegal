@@ -1,103 +1,117 @@
 import os
-import sqlite3
+from sqlalchemy import (
+    create_engine, Column, String, Integer, Date, ForeignKey
+)
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
-CAMINHO_BANCO = os.path.join(os.path.dirname(__file__), 'banco.db')
+# Caminho para o banco
+CAMINHO_BANCO = os.path.abspath(os.path.join(os.path.dirname(__file__), 'banco.db'))
 
-def criar_conexao():
-    """Cria e retorna uma conexão com o banco de dados SQLite3."""
-    return sqlite3.connect(CAMINHO_BANCO)
+# Criação do engine com caminho absoluto
+db = create_engine(f"sqlite:///{CAMINHO_BANCO}", echo=False)
 
+# Session e Base
+Session = sessionmaker(bind=db)
+session = Session()
 
-def criar_tabelas():
-    """Cria todas as tabelas do banco de dados, *se* ainda não existirem."""
-    conexao = criar_conexao()
-    cursor = conexao.cursor()
+Base = declarative_base()
 
-    # Tabela de empresas
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS tabela_empresas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            codigo TEXT,
-            cnpj TEXT UNIQUE,
-            nome_empresa TEXT NOT NULL,
-            municipio TEXT NOT NULL,
-            tag TEXT,
-            email TEXT NOT NULL
-        )
-    """)
+# Tabela Empresas
 
-    # Tabela de licenças
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS tabela_licencas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome_licenca TEXT NOT NULL,
-            data_base DATE,
-            periodicidade TEXT,
-            antecipacao INTEGER NOT NULL
-        )
-    """)
+class TabelaEmpresa(Base):
+    __tablename__ = "tabela_empresas"
 
-    # Relação Empresa <-> Licença
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    codigo = Column(String, nullable=False)
+    cnpj = Column(String, unique=True, nullable=False)
+    nome_empresa = Column(String, nullable=False)
+    municipio = Column(String, nullable=False)
+    tag = Column(String, nullable=False)
+    email = Column(String, nullable=False)
 
-    # Alterar ID empresa e Excluir nome licença pelo ID dela
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS relacao_empresa_licenca (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cnpj TEXT,
-            nome_licenca TEXT,
-            data_base DATE NOT NULL,
-            periodicidade TEXT NOT NULL,
-            antecipacao INTEGER NOT NULL,
-            FOREIGN KEY (cnpj) REFERENCES tabela_empresas(cnpj),
-            FOREIGN KEY (nome_licenca) REFERENCES tabela_licencas(nome_licenca),
-            UNIQUE (cnpj, nome_licenca)
-        )
-    """)
+    # Uma empresa pode ter várias licenças associadas
+    licencas = relationship("RelacaoEmpresaLicenca", back_populates="empresa")
 
-    # Tabela de TAGs e Licenças
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS tabela_tags (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome_tag TEXT NOT NULL,
-            id_licenca INTEGER NOT NULL,
-            FOREIGN KEY (id_licenca) REFERENCES tabela_licencas(id)
-        )
-    """)
+    def __repr__(self):
+        return f"<Empresa {self.codigo} - {self.nome_empresa}>"
 
-    conexao.commit()
-    conexao.close()
+# -------------------- TABELA LICENÇAS --------------------
 
+class TabelaLicencas(Base):
+    __tablename__ = "tabela_licencas"
 
-def visualizar_tabelas():
-    """Imprime os dados das tabelas no terminal para debug ou inspeção."""
-    conexao = criar_conexao()
-    cursor = conexao.cursor()
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nome_licenca = Column(String, nullable=False)
+    data_base = Column(Date)
+    periodicidade = Column(String)
+    antecipacao = Column(Integer, nullable=False)
 
-    cursor.execute("SELECT * FROM tabela_empresas")
-    empresas = cursor.fetchall()
-    print("Tabela_Empresas:")
-    for empresa in empresas:
-        print(empresa)
+    # Uma licença pode estar relacionada a várias empresas e tags
+    empresas = relationship("RelacaoEmpresaLicenca", back_populates="licenca")
+    tags = relationship("TabelaTags", back_populates="licenca")
 
-    cursor.execute("SELECT * FROM tabela_licencas")
-    licencas = cursor.fetchall()
-    print("\nTabela_Licencas:")
-    for licenca in licencas:
-        print(licenca)
+    def __repr__(self):
+        return f"<Licença {self.nome_licenca}>"
 
-    cursor.execute("SELECT * FROM relacao_empresa_licenca")
-    relacoes = cursor.fetchall()
-    print("\nRelacao_Empresa_Licenca:")
-    for relacao in relacoes:
-        print(relacao)
+# -------------------- RELAÇÃO EMPRESA x LICENÇA --------------------
 
-    cursor.execute("SELECT * FROM tabela_tags")
-    tags = cursor.fetchall()
-    print("\nTabela_TAGs:")
-    for tag in tags:
-        print(tag)
+class RelacaoEmpresaLicenca(Base):
+    __tablename__ = "relacao_empresa_licenca"
 
-    conexao.close()
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    cnpj = Column(String, ForeignKey("tabela_empresas.cnpj"))
+    nome_licenca = Column(String, ForeignKey("tabela_licencas.nome_licenca"))
+    data_base = Column(Date, nullable=False)
+    periodicidade = Column(String, nullable=False)
+    antecipacao = Column(Integer, nullable=False)
 
-#criar_tabelas()
-visualizar_tabelas()
+    empresa = relationship("TabelaEmpresa", back_populates="licencas")
+    licenca = relationship("TabelaLicencas", back_populates="empresas")
+
+    def __repr__(self):
+        return f"<Relação {self.cnpj} ↔ {self.nome_licenca}>"
+
+# -------------------- TABELA TAGS --------------------
+
+class TabelaTags(Base):
+    __tablename__ = "tabela_tags"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nome_tag = Column(String, nullable=False)
+    id_licenca = Column(Integer, ForeignKey("tabela_licencas.id"))
+
+    licenca = relationship("TabelaLicencas", back_populates="tags")
+
+    def __repr__(self):
+        return f"<Tag {self.nome_tag}>"
+
+# -------------------- CRIAÇÃO DAS TABELAS --------------------
+
+Base.metadata.create_all(bind=db)
+
+# -------------------- FUNÇÃO DE DEBUG --------------------
+
+def visualizar_tabelas_orm():
+    """Imprime os dados das tabelas usando SQLAlchemy ORM."""
+    with Session() as session:
+        print("\n=== Empresas ===")
+        for empresa in session.query(TabelaEmpresa).all():
+            print(empresa)
+
+        print("\n=== Licenças ===")
+        for licenca in session.query(TabelaLicencas).all():
+            print(licenca)
+
+        print("\n=== Relações Empresa-Licença ===")
+        for relacao in session.query(RelacaoEmpresaLicenca).all():
+            print(relacao)
+
+        print("\n=== Tags ===")
+        for tag in session.query(TabelaTags).all():
+            print(tag)
+
+# Executar função se este for o módulo principal
+if __name__ == "__main__":
+    visualizar_tabelas_orm()
+
+#print(CAMINHO_BANCO)

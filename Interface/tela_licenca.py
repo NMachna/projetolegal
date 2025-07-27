@@ -1,14 +1,14 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel,
     QLineEdit, QPushButton, QTableWidget, 
-    QHeaderView, QComboBox,QTableWidgetItem,
-    QDialog, QVBoxLayout, QFormLayout, QLineEdit,
-    QComboBox, QSpinBox, QDialogButtonBox, 
-    QMessageBox
+    QHeaderView, QComboBox, QTableWidgetItem,
+    QDialog, QFormLayout, QSpinBox, 
+    QDialogButtonBox, QMessageBox
 )
 from PySide6.QtGui import QFont
-from banco.banco import criar_conexao
+from banco.banco import Session, TabelaLicencas, RelacaoEmpresaLicenca
 from Interface.estilos import ESTILO_BOTAO, ESTILO_TABELA, ESTILO_COMBOBOX
+
 
 
 class TelaLicencas(QWidget):
@@ -52,19 +52,14 @@ class TelaLicencas(QWidget):
         self.tabela_licencas.setRowCount(0)
 
         try:
-            with criar_conexao() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT nome_licenca, periodicidade, antecipacao
-                    FROM tabela_licencas
-                """)
-                licencas = cursor.fetchall()
+            with Session() as session:
+                licencas = session.query(TabelaLicencas).all()
 
-                for row_index, (nome, periodicidade, antecipacao) in enumerate(licencas):
+                for row_index, licenca in enumerate(licencas):
                     self.tabela_licencas.insertRow(row_index)
-                    self.tabela_licencas.setItem(row_index, 0, QTableWidgetItem(nome))
-                    self.tabela_licencas.setItem(row_index, 1, QTableWidgetItem(periodicidade.capitalize()))
-                    self.tabela_licencas.setItem(row_index, 2, QTableWidgetItem(str(antecipacao)))
+                    self.tabela_licencas.setItem(row_index, 0, QTableWidgetItem(licenca.nome_licenca))
+                    self.tabela_licencas.setItem(row_index, 1, QTableWidgetItem(licenca.periodicidade.capitalize()))
+                    self.tabela_licencas.setItem(row_index, 2, QTableWidgetItem(str(licenca.antecipacao)))
 
         except Exception as e:
             QMessageBox.critical(self, "Erro ao carregar", str(e))
@@ -113,13 +108,17 @@ class TelaLicencas(QWidget):
                 return
 
             try:
-                with criar_conexao() as conexao:
-                    cursor = conexao.cursor()
-                    cursor.execute("INSERT INTO tabela_licencas (nome_licenca, periodicidade, antecipacao) VALUES (?, ?, ?)",
-                                (nome, periodicidade, antecipacao))
-                    conexao.commit()
+                with Session() as session:
+                    nova_licenca = TabelaLicencas(
+                        nome_licenca = nome,
+                        periodicidade = periodicidade,
+                        antecipacao = antecipacao
+                    )
+                    session.add(nova_licenca)
+                    session.commit()
                     QMessageBox.information(self, "Sucesso", "Licença cadastrada com sucesso!")
                     self.carregar_licencas()
+
             except Exception as e:
                 QMessageBox.critical(self, "Erro", str(e))
 
@@ -142,22 +141,20 @@ class TelaLicencas(QWidget):
             return
         
         try:
-            with criar_conexao() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM relacao_empresa_licenca WHERE nome_licenca = ?", (nome_licenca,))
-                associacoes = cursor.fetchone()[0]
+            with Session() as session:
+                associacoes = session.query(RelacaoEmpresaLicenca).filter_by(nome_licenca = nome_licenca).count()
 
                 if associacoes > 0:
                     QMessageBox.warning(self, "Exclusão não permitida", "Essa licença está associada a uma ou mais empresas.")
                     return
                 
                 # Exclui a licença
-                cursor.execute("""
-                    DELETE FROM tabela_licencas 
-                    WHERE nome_licenca = ?
-                """, (nome_licenca,))
-                conn.commit()
+                licenca = session.query(TabelaLicencas).filter_by(nome_licenca=nome_licenca).first()
+                if not licenca:
+                    QMessageBox.warning(self, "Não encontrada", "Licença não encontrada.")
 
+                session.delete(licenca)
+                session.commit()
                 QMessageBox.information(self, "Licença excluída", f"A licença '{nome_licenca}' foi excluída com sucesso.")
                 self.carregar_licencas()
 
