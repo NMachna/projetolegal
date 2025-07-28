@@ -46,3 +46,9 @@ ESTILO_DATEEDIT = """
         font-size: 14px;
     }
 """
+
+def formatar_cnpj(cnpj: str) -> str:
+    if len(cnpj) != 14:
+        return cnpj
+    
+    return f"{cnpj[:2]}.{cnpj[2:5]}.{cnpj[5:8]}/{cnpj[8:12]}-{cnpj[12:]}"

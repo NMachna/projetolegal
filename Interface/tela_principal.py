@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
 from banco.banco import Session, TabelaEmpresa, RelacaoEmpresaLicenca
-from Interface.estilos import ESTILO_BOTAO, ESTILO_INPUT, ESTILO_TABELA
+from Interface.estilos import ESTILO_BOTAO, ESTILO_INPUT, ESTILO_TABELA, formatar_cnpj
 
 
 class TelaPrincipal(QWidget):
@@ -50,19 +50,36 @@ class TelaPrincipal(QWidget):
         layout.addLayout(barra_layout)
 
         self.tabela = QTableWidget(0, 7)
-        self.tabela.setHorizontalHeaderLabels(["ID", "Código", "CNPJ", "Nome", "Município", "TAG", "E-mail"])
+        self.tabela.setHorizontalHeaderLabels(["ID", "Código", "CNPJ", "Empresa", "Município", "TAG", "E-mail"])
         self.tabela.setStyleSheet(ESTILO_TABELA)
-        self.tabela.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabela.setStyleSheet("font-size: 13px;")
+
+        self.tabela.setStyleSheet("""
+            QTableWidget::item:hover {
+                background-color: #f0f0f0;
+            }
+        """)
+
+        self.tabela.setColumnWidth(0, 50)   # ID
+        self.tabela.setColumnWidth(1, 100)  # Código
+        self.tabela.setColumnWidth(2, 150)  # CNPJ
+        self.tabela.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch) # Nome
+        self.tabela.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch) # Municipio
+        self.tabela.setColumnWidth(5, 150)  # TAG
+        self.tabela.horizontalHeader().setSectionResizeMode(6, QHeaderView.Stretch)  # E-mail
+
+        self.tabela.setAlternatingRowColors(True)
         layout.addWidget(self.tabela)
 
         self.setLayout(layout)
 
     def exibir_dados(self, dados):
-        colunas = ["ID", "Código", "CNPJ", "Nome", "Município", "TAG", "E-mail"]
+        colunas = ["ID", "Código", "CNPJ", "Empresa", "Município", "TAG", "E-mail"]
         self.tabela.setRowCount(len(dados))
         self.tabela.setColumnCount(len(colunas))
         self.tabela.setHorizontalHeaderLabels(colunas)
+
+        colunas_centralizadas = {0, 1, 2, 4, 5}
 
         for i, empresa in enumerate(dados):
             valores = [
@@ -75,10 +92,12 @@ class TelaPrincipal(QWidget):
                 empresa.email
             ]
             for j, valor in enumerate(valores):
+                if j == 2: #CNPJ
+                    valor = formatar_cnpj(valor)
                 item = QTableWidgetItem(str(valor))
+                if j in colunas_centralizadas:
+                    item.setTextAlignment(Qt.AlignCenter)
                 self.tabela.setItem(i, j, item)
-
-        self.tabela.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
     def carregar_dados(self):
         self.barra_pesquisa.clear()
