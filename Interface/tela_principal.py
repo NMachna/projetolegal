@@ -39,6 +39,7 @@ class TelaPrincipal(QWidget):
         self.botao_adicionar = QPushButton("Cadastrar")
         self.botao_excluir = QPushButton("Excluir")
 
+        self.botao_pesquisar.clicked.connect(self.pesquisar_empresa)
         self.botao_adicionar.clicked.connect(self.ir_para_cadastro)
         self.botao_excluir.clicked.connect(self.excluir_empresa_selecionada)
 
@@ -113,14 +114,26 @@ class TelaPrincipal(QWidget):
         termo = self.barra_pesquisa.text().strip()
         try:
             with Session() as session:
-                if termo:
-                    empresas = session.query(TabelaEmpresa).filter(TabelaEmpresa.cnpj.like(f"%{termo}%")).all()
-                else:
+                if not termo:
                     empresas = session.query(TabelaEmpresa).all()
+
+                elif termo.isdigit() and len(termo) <= 4:
+                    # Busca por código
+                    empresas = session.query(TabelaEmpresa).filter(TabelaEmpresa.codigo == termo).all()
+
+                elif termo.isdigit() and len(termo) >= 11:
+                    # Remove pontuação se tiver e busca por CNPJ
+                    cnpj_limpo = termo.zfill(14)
+                    empresas = session.query(TabelaEmpresa).filter(TabelaEmpresa.cnpj.like(f"%{cnpj_limpo}%")).all()
+
+                else:
+                    # Busca por nome (case insensitive)
+                    empresas = session.query(TabelaEmpresa).filter(TabelaEmpresa.nome_empresa.ilike(f"%{termo}%")).all()
+
                 self.exibir_dados(empresas)
+
         except Exception as e:
             QMessageBox.critical(self, "Erro na pesquisa", str(e))
-
 
     def ir_para_cadastro(self):
         self.main_window.stack.setCurrentWidget(self.main_window.tela_cadastro)
