@@ -6,6 +6,7 @@ from Interface.tela_cadastro import TelaCadastroEmpresa
 from Interface.tela_licenca import TelaLicencas
 from Interface.tela_tag import TelaTags
 from Interface.tela_alerta import TelaAlertas
+from Interface.tela_relatorios import TelaRelatorios
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -22,6 +23,7 @@ class MainWindow(QMainWindow):
         self.tela_licencas = TelaLicencas()
         self.tela_tags = TelaTags()
         self.tela_alertas = TelaAlertas()
+        self.tela_relatorios = TelaRelatorios()
 
         # Adicionando ao stack
         self.stack.addWidget(self.tela_principal)  # índice 0
@@ -29,6 +31,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.tela_licencas)   # índice 2
         self.stack.addWidget(self.tela_tags)       # índice 3
         self.stack.addWidget(self.tela_alertas)    # Indice 4
+        self.stack.addWidget(self.tela_relatorios) # Indice 5
 
         self.setCentralWidget(self.stack)
 
@@ -55,7 +58,8 @@ class MainWindow(QMainWindow):
             "Cadastro de Empresas": 1,
             "Licenças": 2,
             "TAGS": 3,
-            "Alertas" : 4
+            "Alertas" : 4,
+            "Relatórios" : 5
         }
         index = mapa.get(item.text(), 0)
         self.stack.setCurrentIndex(index)

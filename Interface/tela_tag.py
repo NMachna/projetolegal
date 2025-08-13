@@ -130,24 +130,23 @@ class TelaTags(QWidget):
             return
         
         def adicionar_dropdown():
-            licencas_restantes = []
             licencas_selecionadas = []
-            
             for dropdown in dropdowns:
-                valor = dropdown.currentData()
-                if valor:
-                    licencas_selecionadas.append(valor)
+                data = dropdown.currentData()
+                if data:
+                    licencas_selecionadas.append(data)
 
-                    if not licencas_restantes:
-                        return
-                    
+            licencas_restantes = []
             for id_, nome in todas_licencas:
                 if id_ not in licencas_selecionadas:
                     licencas_restantes.append((id_, nome))
 
+            if not licencas_restantes:
+                QMessageBox.information(dialogo, "Atenção", "Não há mais licenças disponíveis para adicionar.")
+                return
+
             combo = QComboBox()
             combo.setStyleSheet(ESTILO_COMBOBOX)
-
             for id_, nome in licencas_restantes:
                 combo.addItem(nome, id_)
             

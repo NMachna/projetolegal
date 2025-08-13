@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QMessageBox, QWidget, QVBoxLayout, 
     QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QTableWidget, QHeaderView,
-    QTableWidgetItem
+    QTableWidgetItem, QAbstractItemView
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
@@ -38,12 +38,17 @@ class TelaPrincipal(QWidget):
         self.botao_pesquisar = QPushButton("Pesquisar")
         self.botao_adicionar = QPushButton("Cadastrar")
         self.botao_excluir = QPushButton("Excluir")
+        self.botao_editar = QPushButton("Editar") # Botão para Edição de informações
+        self.botao_salvar = QPushButton("Salvar") # Botão para Salvar edições feitas
+        self.botao_salvar.setEnabled(False)
 
         self.botao_pesquisar.clicked.connect(self.pesquisar_empresa)
         self.botao_adicionar.clicked.connect(self.ir_para_cadastro)
         self.botao_excluir.clicked.connect(self.excluir_empresa_selecionada)
+        self.botao_editar.clicked.connect(self.habilitar_edicao) 
+        self.botao_salvar.clicked.connect(self.salvar_alteracoes)
 
-        for botao in [self.botao_pesquisar, self.botao_adicionar, self.botao_excluir]:
+        for botao in [self.botao_pesquisar, self.botao_adicionar, self.botao_excluir, self.botao_editar, self.botao_salvar]:
             botao.setFixedHeight(30)
             botao.setStyleSheet(ESTILO_BOTAO)
             barra_layout.addWidget(botao)
@@ -54,6 +59,7 @@ class TelaPrincipal(QWidget):
         self.tabela.setHorizontalHeaderLabels(["ID", "Código", "CNPJ", "Empresa", "Município", "TAG", "E-mail"])
         self.tabela.setStyleSheet(ESTILO_TABELA)
         self.tabela.setStyleSheet("font-size: 13px;")
+        self.tabela.setEditTriggers(QAbstractItemView.NoEditTriggers)  # Por padrão bloqueia edição
 
         self.tabela.setStyleSheet("""
             QTableWidget::item:hover {
@@ -68,11 +74,42 @@ class TelaPrincipal(QWidget):
         self.tabela.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch) # Municipio
         self.tabela.setColumnWidth(5, 150)  # TAG
         self.tabela.horizontalHeader().setSectionResizeMode(6, QHeaderView.Stretch)  # E-mail
-
         self.tabela.setAlternatingRowColors(True)
+        
         layout.addWidget(self.tabela)
-
         self.setLayout(layout)
+
+    def habilitar_edicao(self): # Ativa o modo de edição
+        self.tabela.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.SelectedClicked)
+        self.botao_salvar.setEnabled(True)
+
+    def salvar_alteracoes(self): # Confirmação de alterações e mudanças no Banco de Dados
+        resposta = QMessageBox.question(self, "Confirmar", "Deseja salvar as alterações feitas?", QMessageBox.Yes | QMessageBox.No)
+        if resposta == QMessageBox.No:
+            return
+        
+        try:
+            with Session() as session:
+                for row in range(self.tabela.rowCount()):
+                    id_empresa = int(self.tabela.item(row, 0).text())
+                    empresa = session.query(TabelaEmpresa).get(id_empresa)
+                    if empresa:
+                        empresa.codigo = self.tabela.item(row, 1).text()
+                        empresa.cnpj = self.tabela.item(row, 2).text().replace(".", "").replace("-", "").replace("/", "")
+                        empresa.nome_empresa = self.tabela.item(row, 3).text()
+                        empresa.municipio = self.tabela.item(row, 4).text()
+                        empresa.tag = self.tabela.item(row, 5).text()
+                        empresa.email = self.tabela.item(row, 6).text()
+
+                session.commit()
+            QMessageBox.information(self, "Sucesso", "Alterações salvas com sucesso!")
+            self.carregar_dados()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Erro ao salvar", str(e))
+
+        self.tabela.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.botao_salvar.setEnabled(False)
 
     def exibir_dados(self, dados):
         colunas = ["ID", "Código", "CNPJ", "Empresa", "Município", "TAG", "E-mail"]

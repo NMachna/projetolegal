@@ -6,7 +6,7 @@ from email.mime.multipart import MIMEMultipart
 import ssl
 import certifi
 
-from banco.banco import Session, RelacaoEmpresaLicenca
+from banco.banco import Session, RelacaoEmpresaLicenca, TabelaEmpresa, TabelaEnvioEmail
 
 # Mapeamento de Periodicidade
 MAPEAMENTO_PERIODICIDADE = {
@@ -113,15 +113,39 @@ def disparar_alertas():
     empresas_vencendo = obter_licencas_proximas_vencimento()
     enviados = 0
 
-    for dados_empresa in empresas_vencendo:
-        html_email = montar_corpo_email(dados_empresa)
-        send_locaweb_email(
-            SENDER_EMAIL,
-            SENDER_PASSWORD,
-            dados_empresa["email"],
-            f"Licenças próximas do vencimento - {dados_empresa['empresa']}",
-            html_email
-        )
-        enviados += 1
-        print(f"E-mail enviado para {dados_empresa['empresa']} ({dados_empresa['email']})")
+    with Session() as session:
+        for dados_empresa in empresas_vencendo:
+            html_email = montar_corpo_email(dados_empresa)
+
+            try:
+                send_locaweb_email(
+                    SENDER_EMAIL,
+                    SENDER_PASSWORD,
+                    dados_empresa["email"],
+                    f"Licenças próximas do vencimento - {dados_empresa['empresa']}",
+                    html_email
+                )
+
+                # Guardar no banco o histórico do envio
+                licencas_str = ", ".join(
+                    f"{lic['nome']} (venc: {lic['vencimento']})"
+                    for lic in dados_empresa["licencas"]
+                )
+
+                empresa_obj = session.query(TabelaEmpresa).filter_by(email=dados_empresa["email"]).first()
+
+                registro = TabelaEnvioEmail(
+                    empresa_id=empresa_obj.id if empresa_obj else None,
+                    email_destino=dados_empresa["email"],
+                    licencas_enviadas=licencas_str
+                )
+                session.add(registro)
+                session.commit()
+
+                enviados += 1
+                print(f"E-mail enviado para {dados_empresa['empresa']} ({dados_empresa['email']})")
+
+            except Exception as e:
+                print(f"Erro ao enviar e-mail para {dados_empresa['email']}: {e}")
+
     return enviados

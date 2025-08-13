@@ -1,7 +1,8 @@
 import os
 from sqlalchemy import (
-    create_engine, Column, String, Integer, Date, ForeignKey
+    create_engine, Column, String, Integer, Date, ForeignKey, DateTime
 )
+from datetime import datetime
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 # Caminho para o banco
@@ -84,6 +85,21 @@ class TabelaTags(Base):
 
     def __repr__(self):
         return f"<Tag {self.nome_tag}>"
+    
+# -------------------- REGISTRO DE E-MAILS ENVIADOS --------------------
+class TabelaEnvioEmail(Base):
+    __tablename__ = "tabela_envio_email"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    empresa_id = Column(Integer, ForeignKey("tabela_empresas.id"))
+    email_destino = Column(String, nullable=False)
+    data_envio = Column(DateTime, default=datetime.now)
+    licencas_enviadas = Column(String, nullable=False)  # Lista separada por vírgula
+
+    empresa = relationship("TabelaEmpresa")
+
+    def __repr__(self):
+        return f"<EnvioEmail {self.email_destino} - {self.data_envio}>"
 
 # -------------------- CRIAÇÃO DAS TABELAS --------------------
 
