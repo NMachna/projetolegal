@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
         self.tela_licencas = TelaLicencas()
         self.tela_tags = TelaTags()
         self.tela_alertas = TelaAlertas()
-        self.tela_relatorios = TelaRelatorios()
+        self.tela_relatorios = TelaRelatorios(self)
 
         # Adicionando ao stack
         self.stack.addWidget(self.tela_principal)  # índice 0

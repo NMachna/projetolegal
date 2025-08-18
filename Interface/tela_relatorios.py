@@ -4,16 +4,17 @@ from PySide6.QtGui import QFont
 from banco.banco import Session, TabelaEmpresa, TabelaEnvioEmail
 
 class TelaRelatorios(QWidget):
-    def __init__(self):
+    def __init__(self, main_window):
         super().__init__()
+        self.main_window = main_window
         self.setWindowTitle("Relatórios de Envio de E-mails")
         self.resize(800, 500)
 
         layout = QVBoxLayout(self)
 
         self.tabela_empresas = QTableWidget()
-        self.tabela_empresas.setColumnCount(2)
-        self.tabela_empresas.setHorizontalHeaderLabels(["Empresa", "E-mail"])
+        self.tabela_empresas.setColumnCount(4)
+        self.tabela_empresas.setHorizontalHeaderLabels(["Código", "Empresa", "Município", "E-mail"])
         self.tabela_empresas.cellDoubleClicked.connect(self.abrir_detalhes_empresa)
         layout.addWidget(self.tabela_empresas)
 
@@ -28,15 +29,17 @@ class TelaRelatorios(QWidget):
                 self.tabela_empresas.setRowCount(len(empresas))
 
                 for i, emp in enumerate(empresas):
-                    self.tabela_empresas.setItem(i, 0, QTableWidgetItem(emp.nome_empresa))
-                    self.tabela_empresas.setItem(i, 1, QTableWidgetItem(emp.email))
+                    self.tabela_empresas.setItem(i, 0, QTableWidgetItem(emp.codigo or ""))
+                    self.tabela_empresas.setItem(i, 1, QTableWidgetItem(emp.nome_empresa or ""))
+                    self.tabela_empresas.setItem(i, 2, QTableWidgetItem(emp.municipio or ""))
+                    self.tabela_empresas.setItem(i, 3, QTableWidgetItem(emp.email or ""))
 
         except Exception as e:
             QMessageBox.critical(self, "Erro ao carregar empresas", str(e))
 
     def abrir_detalhes_empresa(self, row):
         """Mostra histórico de envios para a empresa clicada"""
-        nome_empresa = self.tabela_empresas.item(row, 0).text()
+        nome_empresa = self.tabela_empresas.item(row, 1).text()  # coluna do nome
 
         with Session() as session:
             empresa = session.query(TabelaEmpresa).filter_by(nome_empresa=nome_empresa).first()

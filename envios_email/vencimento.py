@@ -34,6 +34,11 @@ def obter_licencas_proximas_vencimento():
             empresa = relacao.empresa
             licenca = relacao.licenca
 
+            # Garante que não existe relação orfã
+            if not empresa or not licenca:
+                print(f"[AVISO] Relação órfã encontrada (id={relacao.id}). Ignorando.")
+                continue
+
             # Garantir que periodicidade existe
             if not relacao.periodicidade:
                 continue

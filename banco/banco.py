@@ -33,6 +33,12 @@ class TabelaEmpresa(Base):
     # Uma empresa pode ter várias licenças associadas
     licencas = relationship("RelacaoEmpresaLicenca", back_populates="empresa")
 
+    licencas = relationship(
+        "RelacaoEmpresaLicenca",
+        back_populates="empresa",
+        cascade="all, delete-orphan"
+    )
+
     def __repr__(self):
         return f"<Empresa {self.codigo} - {self.nome_empresa}>"
 

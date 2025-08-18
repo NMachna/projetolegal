@@ -105,6 +105,10 @@ class TelaPrincipal(QWidget):
             QMessageBox.information(self, "Sucesso", "Alterações salvas com sucesso!")
             self.carregar_dados()
 
+            # "Refrash" da aba tela_relatorios para não ter problemas com carregamento de infos
+            if hasattr(self.main_window, "tela_relatorios"):
+                self.main_window.tela_relatorios.carregar_empresas()
+
         except Exception as e:
             QMessageBox.critical(self, "Erro ao salvar", str(e))
 
