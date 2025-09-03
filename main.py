@@ -8,4 +8,4 @@ if __name__ == "__main__":
     screen_geometry = app.primaryScreen().availableGeometry()
     window.setGeometry(screen_geometry)
     window.show()
-    sys.exit(app.exec()) 
+    sys.exit(app.exec())

@@ -5,8 +5,12 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import ssl
 import certifi
+from dotenv import load_dotenv
+import os
 
 from banco.banco import Session, RelacaoEmpresaLicenca, TabelaEmpresa, TabelaEnvioEmail
+
+load_dotenv()
 
 # Mapeamento de Periodicidade
 MAPEAMENTO_PERIODICIDADE = {
@@ -16,6 +20,10 @@ MAPEAMENTO_PERIODICIDADE = {
     "semestral": 180,
     "anual": 365
 }
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = os.getenv("SMTP_PORT")
+SENDER_EMAIL = os.getenv("SENDER_EMAIL")
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 
 # Estrutura de Dicionario
 def nova_empresa_dict():
@@ -65,13 +73,9 @@ def obter_licencas_proximas_vencimento():
 
     return resultado
 
-# Parte de e-mail -> Alterar para um arquivo separado depois
-SMTP_SERVER = "email-ssl.com.br"
-SMTP_PORT = 465
-SENDER_EMAIL = "contato@eocp.com.br"
-SENDER_PASSWORD = "Wocp016@nw#y05"
-
 def send_locaweb_email(sender_email, sender_password, recipient_email, subject, body_html):
+    
+
     try:
         msg = MIMEMultipart("alternative")
         msg["From"] = sender_email
@@ -117,6 +121,7 @@ def montar_corpo_email(empresa):
 def disparar_alertas():
     empresas_vencendo = obter_licencas_proximas_vencimento()
     enviados = 0
+    
 
     with Session() as session:
         for dados_empresa in empresas_vencendo:

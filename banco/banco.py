@@ -66,14 +66,14 @@ class RelacaoEmpresaLicenca(Base):
     __tablename__ = "relacao_empresa_licenca"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    cnpj = Column(String, ForeignKey("tabela_empresas.cnpj"))
-    nome_licenca = Column(String, ForeignKey("tabela_licencas.nome_licenca"))
+    cnpj = Column(String, ForeignKey("tabela_empresas.cnpj", ondelete = "CASCADE"))
+    nome_licenca = Column(String, ForeignKey("tabela_licencas.nome_licenca", ondelete = "CASCADE"))
     data_base = Column(Date, nullable=False)
     periodicidade = Column(String, nullable=False)
     antecipacao = Column(Integer, nullable=False)
 
-    empresa = relationship("TabelaEmpresa", back_populates="licencas")
-    licenca = relationship("TabelaLicencas", back_populates="empresas")
+    empresa = relationship("TabelaEmpresa", back_populates="licencas", passive_deletes = True)
+    licenca = relationship("TabelaLicencas", back_populates="empresas", passive_deletes = True)
 
     def __repr__(self):
         return f"<Relação {self.cnpj} ↔ {self.nome_licenca}>"
@@ -135,5 +135,3 @@ def visualizar_tabelas_orm():
 # Executar função se este for o módulo principal
 if __name__ == "__main__":
     visualizar_tabelas_orm()
-
-#print(CAMINHO_BANCO)
