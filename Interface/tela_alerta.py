@@ -11,8 +11,8 @@ class TelaAlertas(QWidget):
 
         # Tabela para mostrar licenças a vencer
         self.tabela = QTableWidget()
-        self.tabela.setColumnCount(3)
-        self.tabela.setHorizontalHeaderLabels(["Empresa", "Licença", "Data de Vencimento"])
+        self.tabela.setColumnCount(4)
+        self.tabela.setHorizontalHeaderLabels(["Empresa", "Licença", "Data de Vencimento", "Status"])
         
         # Ajuste automático para ocupar o espaço disponível
         self.tabela.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -39,6 +39,7 @@ class TelaAlertas(QWidget):
                 self.tabela.setItem(linha, 0, QTableWidgetItem(empresa["empresa"]))
                 self.tabela.setItem(linha, 1, QTableWidgetItem(licenca["nome"]))
                 self.tabela.setItem(linha, 2, QTableWidgetItem(licenca["vencimento"]))
+                self.tabela.setItem(linha, 3, QTableWidgetItem(licenca["status"]))
                 linha += 1
 
     def enviar_alertas(self):

@@ -29,6 +29,26 @@ SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 def nova_empresa_dict():
     return {"empresa": None, "email": None, "licencas": []}
 
+def filtrar_licencas_ja_enviadas(empresa_obj, licencas_proximas):
+    # Retorna as licenças que ainda não foram enviadas.
+    with Session() as session:
+        # Consulta todos os envios anteriores para essa empresa
+        envios_anteriores = session.query(TabelaEnvioEmail)\
+            .filter_by(empresa_id=empresa_obj.id)\
+            .all()
+
+        # Cria uma lista com nomes de licenças já enviadas
+        licencas_enviadas = []
+        for envio in envios_anteriores:
+            for lic in envio.licencas_enviadas.split(","):
+                nome_licenca = lic.split(" (venc:")[0].strip()
+                licencas_enviadas.append(nome_licenca)
+
+        # Filtra as licenças que ainda não foram enviadas
+        licencas_para_enviar = [lic for lic in licencas_proximas if lic["nome"] not in licencas_enviadas]
+
+    return licencas_para_enviar
+
 # Busca de licenças a expirar
 def obter_licencas_proximas_vencimento():
     data_hoje = date.today()
@@ -56,15 +76,23 @@ def obter_licencas_proximas_vencimento():
                 continue
 
             data_vencimento = relacao.data_base + timedelta(days=dias_periodicidade)
+            dias_restantes = (data_vencimento - data_hoje).days
 
-            # Verifica se está dentro do período de antecipação
-            if 0 <= (data_vencimento - data_hoje).days <= relacao.antecipacao:
-                empresas_dict[empresa.id]["empresa"] = empresa.nome_empresa
-                empresas_dict[empresa.id]["email"] = empresa.email
-                empresas_dict[empresa.id]["licencas"].append({
-                    "nome": licenca.nome_licenca,
-                    "vencimento": data_vencimento.strftime("%d/%m/%Y")
-                })
+            # Status
+            if dias_restantes < 0:
+                status = "VENCIDA"
+            elif dias_restantes <= relacao.antecipacao:
+                status = "A VENCER"
+            else:
+                continue
+
+            empresas_dict[empresa.id]["empresa"] = empresa.nome_empresa
+            empresas_dict[empresa.id]["email"] = empresa.email
+            empresas_dict[empresa.id]["licencas"].append({
+                "nome": licenca.nome_licenca,
+                "vencimento": data_vencimento.strftime("%d/%m/%Y"),
+                "status": status
+            })
 
         # Somente empresas que realmente têm licenças
         for dados_empresa in empresas_dict.values():
@@ -98,19 +126,31 @@ def send_locaweb_email(sender_email, sender_password, recipient_email, subject, 
 
 # Prototipo do Corpo em HTML -> Ver com o Guido um modelo melhor e mais complexo
 def montar_corpo_email(empresa):
+    vencidas = [lic for lic in empresa["licencas"] if lic["status"] == "VENCIDA"]
+    a_vencer = [lic for lic in empresa["licencas"] if lic["status"] == "A VENCER"]
+
     corpo = f"""
     <html>
         <body>
-            <h2>Relatório de Licenças Próximas do Vencimento</h2>
+            <h2>Relatório de Licenças</h2>
             <p>Prezado(a) <strong>{empresa['empresa']}</strong>,</p>
-            <p>Segue a lista de licenças próximas do vencimento:</p>
-            <ul>
     """
-    for lic in empresa["licencas"]:
-        corpo += f"<li>{lic['nome']} - Vencimento: {lic['vencimento']}</li>"
-    
+
+    # Seção de vencidas
+    if vencidas:
+        corpo += "<h3 style='color:red;'>Licenças Vencidas:</h3><ul>"
+        for lic in vencidas:
+            corpo += f"<li><b>{lic['nome']}</b> - Vencimento em: {lic['vencimento']}</li>"
+        corpo += "</ul>"
+
+    # Seção de a vencer
+    if a_vencer:
+        corpo += "<h3 style='color:orange;'>Licenças Próximas do Vencimento:</h3><ul>"
+        for lic in a_vencer:
+            corpo += f"<li><b>{lic['nome']}</b> - Vencimento em: {lic['vencimento']}</li>"
+        corpo += "</ul>"
+
     corpo += """
-            </ul>
             <p>Atenciosamente,<br>Equipe de Controle</p>
         </body>
     </html>
@@ -122,27 +162,40 @@ def disparar_alertas():
     empresas_vencendo = obter_licencas_proximas_vencimento()
     enviados = 0
     
-
     with Session() as session:
         for dados_empresa in empresas_vencendo:
-            html_email = montar_corpo_email(dados_empresa)
+            empresa_obj = session.query(TabelaEmpresa).filter_by(nome_empresa=dados_empresa["empresa"]).first()
+            
+            if not empresa_obj:
+                print(f"[AVISO] Empresa não encontrada no banco: {dados_empresa['empresa']}")
+                continue
 
+            # Filtra apenas licenças que ainda não foram enviadas
+            licencas_para_enviar = filtrar_licencas_ja_enviadas(empresa_obj, dados_empresa["licencas"])
+            if not licencas_para_enviar:
+                print(f"Todas as licenças já enviadas para {empresa_obj.nome_empresa}. Pulando...")
+                continue
+
+            # Monta corpo do e-mail apenas com as licenças restantes
+            html_email = montar_corpo_email({
+                "empresa": empresa_obj.nome_empresa,
+                "email": empresa_obj.email,
+                "licencas": licencas_para_enviar
+            })
             try:
                 send_locaweb_email(
                     SENDER_EMAIL,
                     SENDER_PASSWORD,
                     dados_empresa["email"],
-                    f"Licenças próximas do vencimento - {dados_empresa['empresa']}",
+                    f"Licenças próximas do vencimento/vencidas - {dados_empresa['empresa']}",
                     html_email
                 )
 
                 # Guardar no banco o histórico do envio
                 licencas_str = ", ".join(
                     f"{lic['nome']} (venc: {lic['vencimento']})"
-                    for lic in dados_empresa["licencas"]
+                    for lic in licencas_para_enviar
                 )
-
-                empresa_obj = session.query(TabelaEmpresa).filter_by(email=dados_empresa["email"]).first()
 
                 registro = TabelaEnvioEmail(
                     empresa_id=empresa_obj.id if empresa_obj else None,

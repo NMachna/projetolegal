@@ -2,7 +2,8 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, 
     QFormLayout, QLineEdit, QComboBox, 
     QPushButton, QMessageBox, QDialog, 
-    QDialogButtonBox, QDateEdit, QHBoxLayout
+    QDialogButtonBox, QDateEdit, QHBoxLayout,
+    QCheckBox
 )
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QFont
@@ -63,6 +64,7 @@ class TelaCadastroEmpresa(QWidget):
             with Session() as session:
                 tags = session.query(TabelaTags.nome_tag).distinct().all()
                 self.input_tag.clear()
+                self.input_tag.addItem("Nenhuma")
                 self.input_tag.addItems([tag[0] for tag in tags])
         
         except Exception as e:
@@ -78,8 +80,8 @@ class TelaCadastroEmpresa(QWidget):
         email = self.input_email.text().strip()
         tag = self.input_tag.currentText().strip()
 
-        if not all([codigo, cnpj, nome, municipio, email, tag]):
-            QMessageBox.warning(self, "Campos obrigatórios", "Preencha todos os campos.")
+        if not all([codigo, cnpj, nome, municipio, email]):
+            QMessageBox.warning(self, "Campos obrigatórios", "Preencha todos os campos necessários.")
             return
 
         try:
@@ -98,20 +100,24 @@ class TelaCadastroEmpresa(QWidget):
                     cnpj = cnpj,
                     nome_empresa = nome,
                     municipio = municipio,
-                    tag = tag,
+                    tag = tag if tag != "Nenhuma" else None,
                     email = email
                 )
 
                 session.add(nova_empresa)
                 session.flush()
 
-                licencas = session.query(TabelaLicencas).join(TabelaTags).filter(
-                    TabelaTags.nome_tag == tag
-                ).all()
+                if tag != "Nenhuma":
+                    licencas = session.query(TabelaLicencas).join(TabelaTags).filter(
+                        TabelaTags.nome_tag == tag
+                    ).all()
+                
+                else:
+                    todas_licencas = session.query(TabelaLicencas).all()
+                    licencas = self.abrir_dialogo_licencas(todas_licencas)
 
-                if not licencas:
-                    QMessageBox.warning(self, "Sem Licenças", "Nenhuma licença associada a esta TAG.")
-                    return
+                    if not licencas:
+                        return
 
                 datas = self.abrir_dialogo_datas([
                     (l.id, l.nome_licenca, l.periodicidade, l.antecipacao)
@@ -169,6 +175,28 @@ class TelaCadastroEmpresa(QWidget):
         dialogo.setFont(QFont("Segoe UI", 12))
 
         if dialogo.exec():
-            return [campo.date() for campo in campos_data]  # Retorna as datas, não os widgets
+            return [campo.date() for campo in campos_data]
+        
+        return None
+    
+    def abrir_dialogo_licencas(self, licencas):
+        dialogo = QDialog(self)
+        dialogo.setWindowTitle("Selecione as Licenças")
+        layout = QVBoxLayout()
+        checkboxes = []
+
+        for licenca in licencas:
+            checkbox = QCheckBox(licenca.nome_licenca)
+            layout.addWidget(checkbox)
+            checkboxes.append((checkbox, licenca))
+
+        botoes = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        botoes.accepted.connect(dialogo.accept)
+        botoes.rejected.connect(dialogo.reject)
+        layout.addWidget(botoes)
+
+        dialogo.setLayout(layout)
+        if dialogo.exec():
+            return [licenca for checkbox, licenca in checkboxes if checkbox.isChecked()]
         
         return None

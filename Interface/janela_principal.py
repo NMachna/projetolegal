@@ -7,6 +7,7 @@ from Interface.tela_licenca import TelaLicencas
 from Interface.tela_tag import TelaTags
 from Interface.tela_alerta import TelaAlertas
 from Interface.tela_relatorios import TelaRelatorios
+from Interface.tela_licencas_empresas import TelaRenovacaoLicencas
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -24,14 +25,17 @@ class MainWindow(QMainWindow):
         self.tela_tags = TelaTags()
         self.tela_alertas = TelaAlertas()
         self.tela_relatorios = TelaRelatorios(self)
+        self.tela_licencas_empresas = TelaRenovacaoLicencas()
 
         # Adicionando ao stack
         self.stack.addWidget(self.tela_principal)  # índice 0
         self.stack.addWidget(self.tela_cadastro)   # índice 1
         self.stack.addWidget(self.tela_licencas)   # índice 2
         self.stack.addWidget(self.tela_tags)       # índice 3
-        self.stack.addWidget(self.tela_alertas)    # Indice 4
-        self.stack.addWidget(self.tela_relatorios) # Indice 5
+        self.stack.addWidget(self.tela_licencas_empresas) # Indice 4
+        self.stack.addWidget(self.tela_alertas)    # Indice 5
+        self.stack.addWidget(self.tela_relatorios) # Indice 6
+        
 
         self.setCentralWidget(self.stack)
 
@@ -43,7 +47,7 @@ class MainWindow(QMainWindow):
         self.lista_menu = QListWidget()
         self.lista_menu.addItems([
             "Menu Principal", "Cadastro de Empresas", 
-            "Licenças", "TAGS", "Relatórios", "Alertas"
+            "Licenças", "TAGS", "Licenças Empresas", "Relatórios", "Alertas"
         ])
         self.lista_menu.setStyleSheet("padding: 10px; font-size: 14px;")
         self.menu_lateral.setFixedWidth(180)
@@ -58,8 +62,9 @@ class MainWindow(QMainWindow):
             "Cadastro de Empresas": 1,
             "Licenças": 2,
             "TAGS": 3,
-            "Alertas" : 4,
-            "Relatórios" : 5
+            "Licenças Empresas" : 4,
+            "Alertas" : 5,
+            "Relatórios" : 6
         }
         index = mapa.get(item.text(), 0)
         self.stack.setCurrentIndex(index)

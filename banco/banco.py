@@ -27,7 +27,7 @@ class TabelaEmpresa(Base):
     cnpj = Column(String, unique=True, nullable=False)
     nome_empresa = Column(String, nullable=False)
     municipio = Column(String, nullable=False)
-    tag = Column(String, nullable=False)
+    tag = Column(String, nullable=True)
     email = Column(String, nullable=False)
 
     # Uma empresa pode ter várias licenças associadas
